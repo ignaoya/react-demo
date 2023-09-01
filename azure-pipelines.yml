@@ -30,14 +30,25 @@ stages:
       vmImage: $(vmImageName)
 
     steps:
-    - task: ArchiveFiles@2
-      displayName: 'Archive files'
+    - task: NodeTool@0
       inputs:
-        rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
-        includeRootFolder: false
-        archiveType: zip
-        archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
-        replaceExistingArchive: true
+        versionSpec: '18.x'
+      displayName: 'Install Node.js'
+
+    - script: |
+        npm install
+      displayName: 'npm install'
+
+    - script: |
+        npm run build
+      displayName: 'npm build'
+
+    - script: |
+        source_folder="$(System.DefaultWorkingDirectory)/"
+        archive_path="$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip"
+        cd "$source_folder"
+        zip -r --symlinks "$archive_path" .
+      displayName: 'Archive files'
 
     - upload: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
       artifact: drop
@@ -63,9 +74,4 @@ stages:
               appType: webAppLinux
               WebAppName: $(webAppName)
               packageForLinux: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
-              RuntimeStack: 'NODE|10.10'
-              StartupCommand: 'npm run start'
-              ScriptType: 'Inline Script'
-              InlineScript: |
-                npm install
-                npm run build --if-present
+              RuntimeStack: 'NODE|18-lts'
